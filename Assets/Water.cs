@@ -23,7 +23,7 @@ public class Water : MonoBehaviour
             (
                 from x in Enumerable.Range(0, vertWidth)
                 from z in Enumerable.Range(0, vertLength)
-                select new Vector3(x, 0, z)
+                select new Vector3(x - width / 2f, 0, z - length / 2f)
             ).ToArray(),
             triangles =
             (
@@ -50,7 +50,7 @@ public class Water : MonoBehaviour
         mesh.vertices = (
             from x in Enumerable.Range(0, vertWidth)
             from z in Enumerable.Range(0, vertLength)
-            select new Vector3(x, Mathf.Sin(Time.fixedTime + x - z / 2f) / 2, z)
+            select new Vector3(x - width / 2f, Mathf.Sin(Time.fixedTime + x - z / 2f) / 2, z - length / 2f)
         ).ToArray();
         mesh.RecalculateNormals();
     }
