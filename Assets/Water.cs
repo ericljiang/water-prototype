@@ -8,7 +8,9 @@ public class Water : MonoBehaviour
     
     private int vertWidth, vertLength;
 
-    private Mesh mesh;
+    private Mesh _mesh;
+
+    private MeshCollider _meshCollider;
 
     // Start is called before the first frame update
     void Start()
@@ -16,8 +18,8 @@ public class Water : MonoBehaviour
         vertWidth = width + 1;
         vertLength = length + 1;
         
-        var meshFilter = gameObject.AddComponent<MeshFilter>();
-        mesh = new Mesh
+        var meshFilter = GetComponent<MeshFilter>();
+        _mesh = new Mesh
         {
             vertices =
             (
@@ -41,17 +43,21 @@ public class Water : MonoBehaviour
                 select index
             ).ToArray()
         };
-        mesh.RecalculateNormals();
-        meshFilter.mesh = mesh;
+        _mesh.RecalculateNormals();
+        _mesh.RecalculateBounds();
+        meshFilter.mesh = _mesh;
+        _meshCollider = GetComponent<MeshCollider>();
+        _meshCollider.sharedMesh = _mesh;
     }
 
     void FixedUpdate()
     {
-        mesh.vertices = (
+        _mesh.vertices = (
             from x in Enumerable.Range(0, vertWidth)
             from z in Enumerable.Range(0, vertLength)
             select new Vector3(x - width / 2f, Mathf.Sin(Time.fixedTime + x - z / 2f) / 2, z - length / 2f)
         ).ToArray();
-        mesh.RecalculateNormals();
+        _mesh.RecalculateNormals();
+        _meshCollider.sharedMesh = _mesh;
     }
 }

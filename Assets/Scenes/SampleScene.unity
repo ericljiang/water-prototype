@@ -310,6 +310,8 @@ GameObject:
   - component: {fileID: 1122528768}
   - component: {fileID: 1122528769}
   - component: {fileID: 1122528770}
+  - component: {fileID: 1122528771}
+  - component: {fileID: 1122528772}
   m_Layer: 0
   m_Name: Water
   m_TagString: Untagged
@@ -386,6 +388,28 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &1122528771
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1122528767}
+  m_Mesh: {fileID: 0}
+--- !u!64 &1122528772
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1122528767}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  serializedVersion: 4
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 0}
 --- !u!1 &1583056579
 GameObject:
   m_ObjectHideFlags: 0
@@ -398,6 +422,8 @@ GameObject:
   - component: {fileID: 1583056582}
   - component: {fileID: 1583056581}
   - component: {fileID: 1583056580}
+  - component: {fileID: 1583056584}
+  - component: {fileID: 1583056585}
   m_Layer: 0
   m_Name: Cube
   m_TagString: Untagged
@@ -481,3 +507,32 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!54 &1583056584
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1583056579}
+  serializedVersion: 2
+  m_Mass: 500
+  m_Drag: 0
+  m_AngularDrag: 0.05
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
+--- !u!114 &1583056585
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1583056579}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b2b86db54f08ab42bac46f2e1bb325c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  water: {fileID: 1122528767}
