@@ -1,17 +1,14 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using UnityEngine.SocialPlatforms;
 
 public class Buoyancy : MonoBehaviour
 {
     [SerializeField] private GameObject water;
+    [SerializeField] private bool applyForce;
     private Rigidbody _rigidbody;
     private Mesh _mesh;
     private Renderer _renderer;
-    private Mesh _waterSurface;
     private MeshCollider _waterSurfaceCollider;
 
     // Start is called before the first frame update
@@ -20,7 +17,6 @@ public class Buoyancy : MonoBehaviour
         _rigidbody = GetComponent<Rigidbody>();
         _mesh = GetComponent<MeshFilter>().mesh;
         _renderer = GetComponent<Renderer>();
-        _waterSurface = water.GetComponent<MeshFilter>().mesh;
         _waterSurfaceCollider = water.GetComponent<MeshCollider>();
     }
 
@@ -31,30 +27,26 @@ public class Buoyancy : MonoBehaviour
 
     private void FixedUpdate()
     {
-        // if (transform.position.y < 0)
-        // {
-        //     var force = Vector3.up * 9.81f * 2;
-        //     _rigidbody.AddForce(force);
-        //     Debug.DrawRay(transform.position, force, Color.yellow);
-        // }
-
-        var (force, origin) = CalculateBuoyantForce(_waterSurface);
+        var (force, origin) = CalculateBuoyantForce();
         Debug.Log($"Buoyancy calculated: force={force}, origin={origin}");
-        _rigidbody.AddForceAtPosition(Vector3.up * force, origin);
-        Debug.DrawRay(origin, Vector3.up * force, Color.green);
+        if (applyForce)
+        {
+            _rigidbody.AddForceAtPosition(Vector3.up * force, origin);
+        }
+        Debug.DrawRay(origin, Vector3.up * force / _rigidbody.mass, Color.green);
     }
 
-    private (float force, Vector3 origin) CalculateBuoyantForce(Mesh waterSurface)
+    private (float force, Vector3 origin) CalculateBuoyantForce()
     {
         Debug.Log("=========Calculating buoyancy========");
         Debug.Log("Creating sample patch");
-        var patch = CreateSamplePatch(waterSurface);
+        var patch = CreateSamplePatch();
         Debug.Log($"Created sample patch width={patch.Width} length={patch.Length} vertices={string.Join(",", patch.Mesh.vertices)}");
         
         // calculate heights above water
         Debug.Log("Calculating heights relative to surface");
-        Debug.Log(string.Join(",", _mesh.vertices));
-        Debug.Log(string.Join(",", _mesh.triangles));
+        Debug.Log("vertices=" + string.Join(",", _mesh.vertices));
+        Debug.Log("triangles" + string.Join(",", _mesh.triangles));
         var vertexHeights = new float[_mesh.vertices.Length];
         for (var i = 0; i < _mesh.vertices.Length; i++)
         {
@@ -67,22 +59,85 @@ public class Buoyancy : MonoBehaviour
         var centers = new HashSet<Vector3>();
         for (int i = 0; i < _mesh.triangles.Length; i += 3)
         {
-            Vector3 a = transform.TransformPoint(_mesh.vertices[_mesh.triangles[i]]);
-            Vector3 b = transform.TransformPoint(_mesh.vertices[_mesh.triangles[i + 1]]);
-            Vector3 c = transform.TransformPoint(_mesh.vertices[_mesh.triangles[i + 2]]);
-            if (vertexHeights[_mesh.triangles[i]] <= 0 && vertexHeights[_mesh.triangles[i + 1]] <= 0 && vertexHeights[_mesh.triangles[i + 2]] <= 0)
+            var orderByDescending = Enumerable.Range(0, 3)
+                .OrderByDescending(offset => vertexHeights[_mesh.triangles[i + offset]])
+                .ToArray();
+            // fully submerged
+            if (vertexHeights[_mesh.triangles[i + orderByDescending[0]]] <= 0)
             {
-                var center = (a + b + c) / 3;
-                Debug.Log($"Found submerged triangle centered at {center}");
-                var centerHeight = center.y - patch.HeightAt(center);
-                Debug.Log($"Triangle's relative height is {centerHeight}");
-                var triangleNormal = Vector3.Cross(b - a, c - a).normalized;
-                const float waterPressure = 1029f;
-                var hydrostaticForce = -waterPressure * Physics.gravity.y * centerHeight * triangleNormal / 2;
-                Debug.Log($"Resulting in a hydrostatic force of {hydrostaticForce}");
-                buoyantForce += hydrostaticForce.y;
-                centers.Add(center);
-                Debug.DrawRay(center, hydrostaticForce);
+                Debug.Log("Fully submerged");
+                Vector3 a = transform.TransformPoint(_mesh.vertices[_mesh.triangles[i]]);
+                Vector3 b = transform.TransformPoint(_mesh.vertices[_mesh.triangles[i + 1]]);
+                Vector3 c = transform.TransformPoint(_mesh.vertices[_mesh.triangles[i + 2]]);
+                if (vertexHeights[_mesh.triangles[i]] <= 0 && vertexHeights[_mesh.triangles[i + 1]] <= 0 && vertexHeights[_mesh.triangles[i + 2]] <= 0)
+                {
+                    var (hydrostaticForce, origin) = CalculateHydrostaticForce(a, b, c, patch);
+                    buoyantForce += hydrostaticForce.y;
+                    centers.Add(origin);
+                    Debug.DrawRay(origin, hydrostaticForce / _rigidbody.mass);
+                }
+            }
+            // 2 of 3 submerged
+            else if (vertexHeights[_mesh.triangles[i + orderByDescending[1]]] <= 0)
+            {
+                //   0
+                //  / \
+                // 2---1
+                var triVertexHeights = new float[3];
+                var vertices = new Vector3[3];
+                for (int j = 0; j < 3; j++)
+                {
+                    var vertexIndex = _mesh.triangles[i + (orderByDescending[0] + j) % 3];
+                    triVertexHeights[j] = vertexHeights[vertexIndex];
+                    vertices[j] = transform.TransformPoint(_mesh.vertices[vertexIndex]);
+                }
+                var highHeight = triVertexHeights[0];
+                var rightHeight = triVertexHeights[1];
+                var leftHeight = triVertexHeights[2];
+                var high = vertices[0];
+                var right = vertices[1];
+                var left = vertices[2];
+                var newRight = -rightHeight / (highHeight - rightHeight) * (high - right) + right;
+                var newLeft = -leftHeight / (highHeight - leftHeight) * (high - left) + left;
+                var (rightHydrostaticForce, rightOrigin) = CalculateHydrostaticForce(right, newLeft, newRight, patch);
+                var (leftHydrostaticForce, leftOrigin) = CalculateHydrostaticForce(left, newLeft, right, patch);
+                buoyantForce += rightHydrostaticForce.y + leftHydrostaticForce.y;
+                centers.Add(rightOrigin);
+                centers.Add(leftOrigin);
+                Debug.DrawRay(rightOrigin, rightHydrostaticForce / _rigidbody.mass);
+                Debug.DrawRay(leftOrigin, leftHydrostaticForce / _rigidbody.mass);
+                Debug.DrawLine(newLeft, newRight, Color.blue);
+            }
+            // 1 of 3 submerged
+            else if (vertexHeights[_mesh.triangles[i + orderByDescending[2]]] <= 0)
+            {
+                // 1---2
+                //  \ /
+                //   0
+                var triVertexHeights = new float[3];
+                var vertices = new Vector3[3];
+                for (int j = 0; j < 3; j++)
+                {
+                    var vertexIndex = _mesh.triangles[i + (orderByDescending[2] + j) % 3];
+                    triVertexHeights[j] = vertexHeights[vertexIndex];
+                    vertices[j] = transform.TransformPoint(_mesh.vertices[vertexIndex]);
+                }
+                var lowHeight = triVertexHeights[0];
+                var leftHeight = triVertexHeights[1];
+                var rightHeight = triVertexHeights[2];
+                var low = vertices[0];
+                var left = vertices[1];
+                var right = vertices[2];
+                var newRight = -leftHeight / (lowHeight - leftHeight) * (low - left) + left;
+                var newLeft = -rightHeight / (lowHeight - rightHeight) * (low - right) + right;
+                var (rightHydrostaticForce, rightOrigin) = CalculateHydrostaticForce(left, newLeft, newRight, patch);
+                var (leftHydrostaticForce, leftOrigin) = CalculateHydrostaticForce(right, newLeft, left, patch);
+                buoyantForce += rightHydrostaticForce.y + leftHydrostaticForce.y;
+                centers.Add(rightOrigin);
+                centers.Add(leftOrigin);
+                Debug.DrawRay(rightOrigin, rightHydrostaticForce / _rigidbody.mass);
+                Debug.DrawRay(leftOrigin, leftHydrostaticForce / _rigidbody.mass);
+                Debug.DrawLine(newLeft, newRight, Color.blue);
             }
         }
 
@@ -93,11 +148,29 @@ public class Buoyancy : MonoBehaviour
     }
 
     /// <summary>
+    /// Calculates the hydrostatic force on a fully submerged triangle.
+    /// Points must be given in clockwise order.
+    /// </summary>
+    private (Vector3 force, Vector3 origin) CalculateHydrostaticForce(Vector3 a, Vector3 b, Vector3 c, Patch patch)
+    {
+        const float waterPressure = 1029f;
+        var center = (a + b + c) / 3;
+        Debug.Log($"Found submerged triangle centered at {center}");
+        var centerHeight = center.y - patch.HeightAt(center);
+        Debug.Log($"Triangle's relative height is {centerHeight}");
+        var crossProduct = Vector3.Cross(b - a, c - a);
+        var area = crossProduct.magnitude / 2;
+        var triangleNormal = crossProduct.normalized;
+        var hydrostaticForce = -waterPressure * Physics.gravity.y * centerHeight * area * triangleNormal;
+        Debug.Log($"Resulting in a hydrostatic force of {hydrostaticForce}");
+        return (hydrostaticForce, center);
+    }
+
+    /// <summary>
     /// Samples the given surface to create a patch that encapsulates this GO's vertical projection.
     /// </summary>
-    /// <param name="surface">Surface to sample</param>
     /// <returns></returns>
-    private Patch CreateSamplePatch(Mesh surface)
+    private Patch CreateSamplePatch()
     {
         var roundedMin = Vector3Int.FloorToInt(_renderer.bounds.min);
         var roundedMax = Vector3Int.CeilToInt(_renderer.bounds.max);
@@ -117,6 +190,7 @@ public class Buoyancy : MonoBehaviour
                 if (_waterSurfaceCollider.Raycast(ray, out var hit, 2 * maxHeight - roundedMin.y)) {
                     Debug.Log("Hit point: " + hit.point);
                     y = hit.point.y;
+                    // y = 0;
                 }
                 vertices[i + j * (width + 1)] = new Vector3(x, y, z);
             }
