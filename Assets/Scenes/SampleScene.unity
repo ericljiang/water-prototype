@@ -536,3 +536,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   water: {fileID: 1122528767}
+  applyForce: 1
