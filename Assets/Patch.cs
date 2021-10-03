@@ -41,14 +41,11 @@ public class Patch
                 float y = maxHeight;
                 var ray = new Ray(new Vector3(x, maxHeight, z), Vector3.down);
                 if (collider.Raycast(ray, out var hit, 2 * maxHeight - roundedMin.y)) {
-                    Debug.Log("Hit point: " + hit.point);
                     y = hit.point.y;
-                    // y = 0;
                 }
                 vertices[i + j * (width + 1)] = new Vector3(x, y, z);
             }
         }
-        // Debug.Log(string.Join(",", vertices));
 
         var triangles = new int[width * length * 6]; // 1 vert -> 1 square -> 2 tris -> 6 verts
         for (int i = 0; i < width; i++)

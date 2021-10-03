@@ -17,6 +17,7 @@ public class Buoyancy : HydrodynamicForce
     
     public (float force, Vector3 origin) CalculateForce(IEnumerable<(Vector3, Vector3, Vector3)> submergedTriangles)
     {
+        Debug.Log("Calculating buoyancy");
         float buoyantForce = 0;
         var centers = new HashSet<Vector3>();
         foreach (var (a, b, c) in submergedTriangles)
@@ -39,14 +40,11 @@ public class Buoyancy : HydrodynamicForce
     private (Vector3 force, Vector3 origin) CalculateHydrostaticForce(Vector3 a, Vector3 b, Vector3 c)
     {
         var center = (a + b + c) / 3;
-        Debug.Log($"Found submerged triangle centered at {center}");
         var centerHeight = center.y - _patch.HeightAt(center);
-        Debug.Log($"Triangle's relative height is {centerHeight}");
         var crossProduct = Vector3.Cross(b - a, c - a);
         var area = crossProduct.magnitude / 2;
         var triangleNormal = crossProduct.normalized;
         var hydrostaticForce = -WaterPressure * Physics.gravity.y * centerHeight * area * triangleNormal;
-        Debug.Log($"Resulting in a hydrostatic force of {hydrostaticForce}");
         return (hydrostaticForce, center);
     }
 }

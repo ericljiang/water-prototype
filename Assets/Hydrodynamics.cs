@@ -22,17 +22,13 @@ public class Hydrodynamics : MonoBehaviour
 
     private void FixedUpdate()
     {
-        Debug.Log("=========Calculating hydrodynamic forces========");
+        Debug.Log("========= Calculating hydrodynamic forces =========");
         Debug.Log("Creating sample patch");
         var bounds = _renderer.bounds;
         var patch = Patch.SampleCollider(_waterSurfaceCollider, bounds.min, bounds.max);
-        Debug.Log(
-            $"Created sample patch width={patch.Width} length={patch.Length} vertices={string.Join(",", patch.Vertices)}");
+        Debug.Log($"Created sample patch width={patch.Width} length={patch.Length}");
 
         // calculate heights above water
-        Debug.Log("Calculating heights relative to surface");
-        Debug.Log("vertices=" + string.Join(",", _mesh.vertices));
-        Debug.Log("triangles" + string.Join(",", _mesh.triangles));
         var vertexHeights = new float[_mesh.vertices.Length];
         for (var i = 0; i < _mesh.vertices.Length; i++)
         {
@@ -40,23 +36,19 @@ public class Hydrodynamics : MonoBehaviour
             vertexHeights[i] = vertex.y - patch.HeightAt(vertex);
         }
 
-        Debug.Log("vertexHeights=" + string.Join(",", vertexHeights));
-
         var submergedTriangles = CalculateSubmergedTriangles(vertexHeights);
 
-        var hydrodynamicForces = new HashSet<HydrodynamicForce>
+        var hydrodynamicForces = new HydrodynamicForce[]
         {
             new Buoyancy(patch, _rigidbody.mass)
         };
         foreach (var hydrodynamicForce in hydrodynamicForces)
         {
             var (force, origin) = hydrodynamicForce.CalculateForce(submergedTriangles);
-            Debug.Log($"Buoyancy calculated: force={force}, origin={origin}");
             if (applyForce)
             {
                 _rigidbody.AddForceAtPosition(Vector3.up * force, origin);
             }
-
             Debug.DrawRay(origin, Vector3.up * force / _rigidbody.mass, Color.green);
         }
     }
@@ -72,7 +64,6 @@ public class Hydrodynamics : MonoBehaviour
             // fully submerged
             if (vertexHeights[_mesh.triangles[i + orderByDescending[0]]] <= 0)
             {
-                Debug.Log("Fully submerged");
                 var a = transform.TransformPoint(_mesh.vertices[_mesh.triangles[i]]);
                 var b = transform.TransformPoint(_mesh.vertices[_mesh.triangles[i + 1]]);
                 var c = transform.TransformPoint(_mesh.vertices[_mesh.triangles[i + 2]]);
