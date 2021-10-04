@@ -23,7 +23,7 @@ public class Patch
     /// Samples the given surface to create a patch that encapsulates this GO's vertical projection.
     /// </summary>
     /// <returns></returns>
-    public static Patch SampleCollider(Collider collider, Vector3 min, Vector3 max)
+    public static Patch SampleCollider(Collider collider, Vector3 min, Vector3 max, bool fakeHeight = false)
     {
         var roundedMin = Vector3Int.FloorToInt(min);
         var roundedMax = Vector3Int.CeilToInt(max);
@@ -41,7 +41,7 @@ public class Patch
                 float y = maxHeight;
                 var ray = new Ray(new Vector3(x, maxHeight, z), Vector3.down);
                 if (collider.Raycast(ray, out var hit, 2 * maxHeight - roundedMin.y)) {
-                    y = hit.point.y;
+                    y = fakeHeight ? 0 : hit.point.y;
                 }
                 vertices[i + j * (width + 1)] = new Vector3(x, y, z);
             }

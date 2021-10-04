@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class Buoyancy : HydrodynamicForce
 {
-    private const float WaterPressure = 1029f;
+    private const float WaterDensity = 1029f;
     
     private readonly Patch _patch;
     private readonly float _mass;
@@ -15,7 +15,7 @@ public class Buoyancy : HydrodynamicForce
         _mass = mass;
     }
     
-    public (float force, Vector3 origin) CalculateForce(IEnumerable<(Vector3, Vector3, Vector3)> submergedTriangles)
+    public IEnumerable<(Vector3 force, Vector3 origin)> CalculateForce(ISet<(Vector3, Vector3, Vector3)> submergedTriangles)
     {
         Debug.Log("Calculating buoyancy");
         float buoyantForce = 0;
@@ -30,7 +30,7 @@ public class Buoyancy : HydrodynamicForce
         var count = centers.Count;
         Debug.Log($"Calculated {count} hydrostatic forces");
         var averageCenter = count > 0 ? centers.Aggregate(Vector3.zero, (a, b) => a + b) / centers.Count : Vector3.zero;
-        return (buoyantForce, averageCenter);
+        return new [] { (buoyantForce * Vector3.up, averageCenter) };
     }
 
     /// <summary>
@@ -44,7 +44,7 @@ public class Buoyancy : HydrodynamicForce
         var crossProduct = Vector3.Cross(b - a, c - a);
         var area = crossProduct.magnitude / 2;
         var triangleNormal = crossProduct.normalized;
-        var hydrostaticForce = -WaterPressure * Physics.gravity.y * centerHeight * area * triangleNormal;
+        var hydrostaticForce = -WaterDensity * Physics.gravity.y * centerHeight * area * triangleNormal;
         return (hydrostaticForce, center);
     }
 }

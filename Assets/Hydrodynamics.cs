@@ -5,7 +5,13 @@ using UnityEngine;
 public class Hydrodynamics : MonoBehaviour
 {
     [SerializeField] private GameObject water;
+    
+    [Header("Debug")]
     [SerializeField] private bool applyForce;
+    [SerializeField] private bool drawForces;
+    [SerializeField] private bool drawForceComponents;
+    [SerializeField] private bool fakeWaveHeight;
+    
     private Rigidbody _rigidbody;
     private Mesh _mesh;
     private Renderer _renderer;
@@ -25,7 +31,7 @@ public class Hydrodynamics : MonoBehaviour
         Debug.Log("========= Calculating hydrodynamic forces =========");
         Debug.Log("Creating sample patch");
         var bounds = _renderer.bounds;
-        var patch = Patch.SampleCollider(_waterSurfaceCollider, bounds.min, bounds.max);
+        var patch = Patch.SampleCollider(_waterSurfaceCollider, bounds.min, bounds.max, fakeWaveHeight);
         Debug.Log($"Created sample patch width={patch.Width} length={patch.Length}");
 
         // calculate heights above water
@@ -38,18 +44,26 @@ public class Hydrodynamics : MonoBehaviour
 
         var submergedTriangles = CalculateSubmergedTriangles(vertexHeights);
 
-        var hydrodynamicForces = new HydrodynamicForce[]
+        var buoyancy = new Buoyancy(patch, _rigidbody.mass);
+        var viscousWaterResistance = new ViscousWaterResistance(
+            _rigidbody.velocity, _rigidbody.angularVelocity, _rigidbody.worldCenterOfMass);
+        ApplyForces(buoyancy.CalculateForce(submergedTriangles), Color.green);
+        ApplyForces(viscousWaterResistance.CalculateForce(submergedTriangles), Color.red);
+
+    }
+
+    private void ApplyForces(IEnumerable<(Vector3 force, Vector3 origin)> forces, Color color)
+    {
+        foreach (var (force, origin) in forces)
         {
-            new Buoyancy(patch, _rigidbody.mass)
-        };
-        foreach (var hydrodynamicForce in hydrodynamicForces)
-        {
-            var (force, origin) = hydrodynamicForce.CalculateForce(submergedTriangles);
             if (applyForce)
             {
-                _rigidbody.AddForceAtPosition(Vector3.up * force, origin);
+                _rigidbody.AddForceAtPosition(force, origin);
             }
-            Debug.DrawRay(origin, Vector3.up * force / _rigidbody.mass, Color.green);
+            if (drawForces)
+            {
+                Debug.DrawRay(origin, force / _rigidbody.mass, color);
+            }
         }
     }
 
