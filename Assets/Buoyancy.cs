@@ -25,7 +25,7 @@ public class Buoyancy : HydrodynamicForce
             var (hydrostaticForce, origin) = CalculateHydrostaticForce(a, b, c);
             buoyantForce += hydrostaticForce.y;
             centers.Add(origin);
-            Debug.DrawRay(origin, hydrostaticForce / _mass);
+            // Debug.DrawRay(origin, hydrostaticForce / _mass);
         }
         var count = centers.Count;
         Debug.Log($"Calculated {count} hydrostatic forces");
