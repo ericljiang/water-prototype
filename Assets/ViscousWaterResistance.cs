@@ -21,7 +21,7 @@ public class ViscousWaterResistance : HydrodynamicForce
     public IEnumerable<(Vector3 force, Vector3 origin)> CalculateForce(ISet<(Vector3, Vector3, Vector3)> submergedTriangles)
     {
         var speed = _velocity.magnitude;
-        var length = 1f;
+        var length = 2f; // TODO actual length
         var reynoldsNumber = ReynoldsNumber(speed, length, WaterViscosity);
         var referenceResistanceCoefficient = ReferenceResistanceCoefficient(reynoldsNumber);
 

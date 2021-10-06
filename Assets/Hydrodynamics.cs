@@ -39,6 +39,7 @@ public class Hydrodynamics : MonoBehaviour
             
         _meshTriangles = _mesh.triangles;
         _meshVertices = _mesh.vertices;
+        Debug.Log($"Mesh has {_meshTriangles.Length / 3} triangles");
     }
 
     private void FixedUpdate()
@@ -59,6 +60,7 @@ public class Hydrodynamics : MonoBehaviour
         }
 
         var submergedTriangles = CalculateSubmergedTriangles(vertexHeights);
+        Debug.Log($"Found {submergedTriangles.Count} submerged triangles.");
 
         var buoyancy = new Buoyancy(patch, _rigidbody.mass);
         var viscousWaterResistance = new ViscousWaterResistance(
@@ -70,7 +72,7 @@ public class Hydrodynamics : MonoBehaviour
         ApplyForces(viscousWaterResistance.CalculateForce(submergedTriangles), Color.red);
         ApplyForces(pressureDrag.CalculateForce(submergedTriangles), Color.blue);
         var endTime = Time.realtimeSinceStartup;
-        Debug.Log($"Finished calculating hydrodynamic forces in {endTime - startTime} seconds.");
+        Debug.Log($"Finished calculating hydrodynamic forces in {(endTime - startTime) * 1000} ms.");
     }
 
     private void ApplyForces(IEnumerable<(Vector3 force, Vector3 origin)> forces, Color color)

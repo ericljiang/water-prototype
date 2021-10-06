@@ -36,18 +36,18 @@ public class PressureDrag : HydrodynamicForce
             var pointSpeed = pointVelocity.magnitude;
             var left = b - a;
             var right = c - a;
-            var cosine = Vector3.Dot(left, right) / left.magnitude / right.magnitude;
             var crossProduct = Vector3.Cross(left, right);
             var area = crossProduct.magnitude / 2;
             var normal = crossProduct.normalized;
+            var cosine = Vector3.Dot(pointVelocity.normalized, normal);
             if (cosine > 0)
             {
-                var force = -1 * (_linearPressureCoefficient * pointSpeed + _quadraticPressureCoefficient * Mathf.Pow(pointSpeed, 2)) * area * Mathf.Pow(area, _pressureFallOffPower) * normal;
+                var force = -1 * (_linearPressureCoefficient * pointSpeed + _quadraticPressureCoefficient * Mathf.Pow(pointSpeed, 2)) * area * Mathf.Pow(cosine, _pressureFallOffPower) * normal;
                 return (force, center);
             }
             else if (cosine < 0)
             {
-                var force = (_linearSuctionCoefficient * pointSpeed + _quadraticSuctionCoefficient * Mathf.Pow(pointSpeed, 2)) * area * Mathf.Pow(area, _suctionFallOffPower) * normal;
+                var force = (_linearSuctionCoefficient * pointSpeed + _quadraticSuctionCoefficient * Mathf.Pow(pointSpeed, 2)) * area * Mathf.Pow(-cosine, _suctionFallOffPower) * normal;
                 return (force, center);
             }
             else
